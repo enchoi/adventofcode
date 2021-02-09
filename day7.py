@@ -36,19 +36,37 @@ def get_opcodes(nb):
 
 if __name__ == '__main__':
 
-    orders = list(permutations(range(5)))
+    orders = list(permutations(range(5, 10)))
     powers = []
     for order in orders:
         amps = get_opcodes(5)
         power = 0
-        for amp, alu in zip(amps, order):
-            conn_p, conn_c = multiprocessing.Pipe()
-            amp.set_pipe(conn_c)
+        pipes = []
+        threads = []
+        # setup amps
+        for amp, alumage in zip(amps, order):
+            conn1, conn2 = multiprocessing.Pipe()
+            amp.set_pipe(conn2)
+            pipes.append(conn1)
+            conn1.send(alumage)
+
+        # start threading
+        for amp in amps:
             thread = threading.Thread(target=process, args=(amp,))
             thread.start()
-            conn_p.send(f"{alu}\n")
-            conn_p.send(f"{power}\n")
-            power = conn_p.recv()
-            power = int(power)
+            threads.append(thread)
+
+        # begin amplification
+        while True:
+            running = []
+            for amp, pipe, thread in zip(amps, pipes, threads):
+                pipe.send(power)
+                power = int(pipe.recv())
+                running.append(amp.is_running)
+            if not all(running):
+                break
+        for thread in threads:
+            thread.join()
+
         powers.append(power)
     print(max(powers))
