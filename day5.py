@@ -4,12 +4,33 @@ from itertools import zip_longest
 class Opcodes():
     """ A test for day5 """
 
-    def __init__(self, codes):
+    def __init__(self, codes=None):
         self._cursor = 0
         self._codes = codes
         self._methods = {}
         self.is_running = True
         self.debug = False
+        self._com_pipe = None
+
+    def set_pipe(self, pipe):
+        """ set a communication pipe """
+        self._com_pipe = pipe
+
+    def is_pipe(self):
+        """ check if a pipe is present """
+        return self._com_pipe is not None
+
+    def read_pipe(self):
+        """ return first object in pipe """
+        return self._com_pipe.recv()
+
+    def write_pipe(self, item):
+        """ write item in pipe """
+        self._com_pipe.send(item)
+
+    def set_codes(self, codes):
+        """ Set codes instruction """
+        self._codes = codes
 
     def in_debug(self, boolean):
         """ go in debug ? """
@@ -94,13 +115,19 @@ def multiply(opcode, x, y, ret):
 
 def inputt(opcode, ret):
     """ get ipnut and safe at ret """
-    data = int(input("Enter a number:\n"))
+    if not opcode.is_pipe():
+        data = int(input("Enter a number:\n"))
+    else:
+        data = int(opcode.read_pipe())
     opcode[ret] = data
 
 
-def outputt(_, ret):
+def outputt(opcodes, ret):
     """ return opcode memory[ret] """
-    print(ret)
+    if not opcodes.is_pipe():
+        print(ret)
+    else:
+        opcodes.write_pipe(ret)
 
 
 def jump_if_true(opcodes, test, jump):
@@ -128,6 +155,21 @@ def equals(opcodes, param1, param2, ret):
 def stop(opcode):
     """ stop processing """
     opcode.stop()
+
+
+def get_int_code_configured():
+    """ return int code configured """
+    opcodes = Opcodes()
+    opcodes.add_methods(1, add, 2, 1)
+    opcodes.add_methods(2, multiply, 2, 1)
+    opcodes.add_methods(3, inputt, 0, 1)
+    opcodes.add_methods(4, outputt, 1, 0)
+    opcodes.add_methods(5, jump_if_true, 2, 0)
+    opcodes.add_methods(6, jump_if_false, 2, 0)
+    opcodes.add_methods(7, less_than, 2, 1)
+    opcodes.add_methods(8, equals, 2, 1)
+    opcodes.add_methods(99, stop, 0, 0)
+    return opcodes
 
 
 if __name__ == '__main__':
