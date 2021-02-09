@@ -41,6 +41,27 @@ class Elves_Image:
         """ transform a layer into string """
         return "".join(chain.from_iterable(layer.tolist()))
 
+    def stack_layer(self):
+        """ Stack all layers """
+        layers = [list(chain.from_iterable(layer)) for layer in self.layers]
+        transparent = "2"
+        image = layers[0]
+        for layer in layers:
+            for index, (pixel_i, pixel_l) in enumerate(zip(image, layer)):
+                if pixel_i == transparent:
+                    image[index] = pixel_l
+
+        # applay color
+        white = chr(9608)
+        black = " "
+        for index, pixel in enumerate(image):
+            image[index] = white if pixel == "1" else black
+        # print the image
+        for line in np.resize(image, (self.height, self.width)):
+            print("".join(line))
+
+        return image
+
 
 def main():
     """ the main test """
@@ -55,7 +76,14 @@ def main():
     print(f"1: {ones}")
     print(f"2: {twos}")
     print(f"multiplication: {ones * twos}")
+    return image
+
+
+def main2(image):
+    """ the main 2 """
+    image.stack_layer()
 
 
 if __name__ == '__main__':
-    main()
+    image = main()
+    main2(image)
