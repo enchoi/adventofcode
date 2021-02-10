@@ -1,3 +1,5 @@
+import sys
+from copy import deepcopy
 from itertools import zip_longest
 
 
@@ -11,6 +13,18 @@ class Opcodes():
         self.is_running = True
         self.debug = False
         self._com_pipe = None
+        self.rel_offset = 0
+        self._len_code = 0
+
+    # def write(self, key, value, mode=0):
+    #     """ write depending mode
+    #     0: Position
+    #     1: Immediate (can't be)
+    #     2: related"""
+    #     if not mode:
+    #         self._codes[key] = value
+    #     else:
+    #         self._code[self.rel_offset] = value
 
     def set_pipe(self, pipe):
         """ set a communication pipe """
@@ -30,7 +44,10 @@ class Opcodes():
 
     def set_codes(self, codes):
         """ Set codes instruction """
-        self._codes = codes
+        self._codes = [0] * 500_000
+        self._len_code = len(codes)
+        for index, data in enumerate(deepcopy(codes)):
+            self._codes[index] = data
 
     def in_debug(self, boolean):
         """ go in debug ? """
@@ -42,13 +59,25 @@ class Opcodes():
     def __setitem__(self, key, value):
         self._codes[key] = value
 
-    def read(self, mode):
+    def _read(self,):
         """ read data 1b1 """
         data = self._codes[self._cursor]
         self._cursor += 1
-        if mode:
+        return data
+
+    def read(self, mode):
+        """ read with mode """
+        data = self._read()
+        if mode == 1:
             return data
+        if mode == 2:
+            return self._codes[self.rel_offset + data]
         return self._codes[data]
+
+    def reset(self):
+        """ reset cursor """
+        self._cursor = 0
+        self.rel_offset = 0
 
     def jump_to(self, address):
         """ jump to address """
@@ -62,45 +91,51 @@ class Opcodes():
         """ add a method """
         self._methods[instr] = (params_nb, method, ret)
 
+    def set_relatif_offset(self, offset):
+        """ ajust the relatif offset """
+        self.rel_offset = offset
+
     def process(self):
         """ process data """
         while self.is_running:
             # read instruction
             instr_params = self.read(True)
-            # print(instr_params)
 
-            # get parameter mode and instruction
-            instr_params = f"{instr_params:0>#2}"
-            instr = int(instr_params[-2:])
-            modes = [int(x) for x in instr_params[:-2]][::-1]
-            # print(f"instr_params : {instr_params}")
-            # print(f"instr : {instr}")
-            # print(f"modes : {modes}")
+            # cut insctruction part
+            instr = int(f"{instr_params:0>#2}"[-2:])
 
-            # get parameters number and method
-            args_nb, method, ret = self._methods[instr]
-            # print(f"method.__name__ : {method.__name__}")
-            # print(f"args_nb : {args_nb}")
-            # print(f"return : {bool(ret)}")
+            # get parameter number to get modes
+            nb_arg, method, nb_ret = self._methods[instr]
+
+            # compute modes
+            modes = f"{{instr_params:0>#{nb_arg+nb_ret+2}}}".format(instr_params=instr_params)[:-2]
+            modes = modes[::-1]
+            arg_modes = modes[:nb_arg]
+            ret_modes = modes[nb_arg:]
+
+            # read args
             args = []
-            for arg, mode in zip_longest(range(args_nb), modes):
-                if arg is None:
-                    break
-                if mode is None:
-                    mode = 0
+            for mode in arg_modes:
+                args.append(self.read(int(mode)))
+            for mode in ret_modes:
+                mode = int(mode)
+                # position
+                if not mode:
+                    args.append(self._read())
+                # related offset
+                elif mode == 2:
+                    args.append(self.rel_offset + self._read())
 
-                # print(f"Cursor : {self._cursor}")
-                args.append(self.read(mode))
-
-                # print(f"mode : {mode}, arg : {args}")
-            if ret:
-                args.append(self.read(True))
-
-            # print(f"args : {args}")
-            method(self, *args)
             if self.debug:
-                print(f"New codes : {self._codes}")
-        return self._codes
+                print("\n\n\nNew instruction")
+                print(f"instr_params: {instr_params}")
+                print(f"instr: {instr}")
+                print(f"modes: {modes}")
+                print(f"arg_modes: {arg_modes}")
+                print(f"ret_modes: {ret_modes}")
+                print(f"args: {args}")
+
+            method(self, *args)
 
 
 def add(opcode, x, y, ret):
@@ -157,6 +192,11 @@ def stop(opcode):
     opcode.stop()
 
 
+def set_relatif_offset(opcodes, offset):
+    """ set the relatif offset """
+    opcodes.set_relatif_offset(opcodes.rel_offset + offset)
+
+
 def get_int_code_configured():
     """ return int code configured """
     opcodes = Opcodes()
@@ -168,6 +208,7 @@ def get_int_code_configured():
     opcodes.add_methods(6, jump_if_false, 2, 0)
     opcodes.add_methods(7, less_than, 2, 1)
     opcodes.add_methods(8, equals, 2, 1)
+    opcodes.add_methods(9, set_relatif_offset, 1, 0)
     opcodes.add_methods(99, stop, 0, 0)
     return opcodes
 
