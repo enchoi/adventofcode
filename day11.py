@@ -95,11 +95,17 @@ class Hull_robot:
         thread.daemon = True
         thread.start()
         repaint = {}
+        start = False
         try:
             while True:
                 if self.codes.is_running:
                     # provide current color
-                    color = self.search_shell(self.x, self.y).color
+                    # start on a white case...
+                    if start:
+                        color = self.search_shell(self.x, self.y).color
+                    else:
+                        color = 1
+                        start = 1
                     self.pipe.send(color)
 
                     # wait ?
@@ -121,7 +127,7 @@ class Hull_robot:
 
                 if not self.codes.is_running:
                     break
-            thread.join()
+            # thread.join()
         except KeyboardInterrupt:
             pass
         print("repaint: {}".format(len(repaint)))
@@ -135,9 +141,9 @@ class Hull_robot:
         x_max = max(x_s)
         y_min = min(y_s)
         y_max = max(y_s)
-        for pos_y in range(y_min, y_max):
-            for pos_x in range(x_min, x_max):
-                print("#" if self.search_shell(
+        for pos_y in range(y_min-1, y_max+1):
+            for pos_x in range(x_min-1, x_max+1):
+                print(chr(254) if self.search_shell(
                     pos_x, pos_y).color else " ", end='')
             print("")
 
