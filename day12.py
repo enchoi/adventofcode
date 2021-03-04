@@ -1,13 +1,27 @@
 """
 Where are they ?
+
+Part 2:
+I don't figure it out myself... i'm to dumb
+
+each axis rotation are separate.
+To find the solution, we need to find each rotation axis length and
+find the least commun multiple numpy.lcm of each circle length
 """
 # standard imports
 import re
+import math
 
 # third party imports
-import matplotlib.pyplot as plt
 
 # local imports
+
+
+def lcm(a, b):
+    """ get the lcm """
+    if a and b:
+        return int(abs(a * b) / math.gcd(a, b))
+    return 0
 
 
 class Planet:
@@ -16,11 +30,6 @@ class Planet:
     def __init__(self, x, y, z):
         self.position = [x, y, z]
         self.velocity = [0, 0, 0]
-        # self.next_position = [0, 0, 0]
-        # self.next_velocity = [0, 0, 0]
-        self.positions = {"x": [0],
-                          "y": [0],
-                          "z": [0]}
 
     def __str__(self):
         return "Planet(x={}, y={}, z={}) vel:[x={}, y={}, z={}]".format(
@@ -35,22 +44,15 @@ class Planet:
         # gravity
         for index, (axis, other_axis) in enumerate(zip(self.position, other.position)):
             if axis > other_axis:
-                # self.next_position[index] = axis - 1
                 self.velocity[index] -= 1
             elif axis < other_axis:
-                # self.next_position[index] = axis + 1
                 self.velocity[index] += 1
 
     def next(self):
         """ next second """
-        # self.position = self.next_position.copy()
-        # self.velocity = self.next_velocity.copy()
         # apply velocity
         for index, (pos, velocity) in enumerate(zip(self.position, self.velocity)):
             self.position[index] = pos + velocity
-        # plot
-        for axis, pos in zip(["x", "y", "z"], self.position):
-            self.positions[axis].append(pos)
 
     def compute_energies(self):
         """  return potential energy and kinetic energy """
@@ -76,47 +78,41 @@ def get_inputs():
         print(planet)
     print("")
 
-    for interaction in range(1000+1):
-        # print message ?
-        if not interaction % 100:
-            print("After {} step".format(interaction))
+    # for interaction in range(1000+1):
+    x_states = set()
+    y_states = set()
+    z_states = set()
+    try:
+        while True:
+            # normal run
             for planet in planets:
-                print(planet)
-            pot = []
-            kin = []
+                for other in planets:
+                    if planet == other:
+                        continue
+                    planet.interact(other)
+
+            # go to next step
             for planet in planets:
-                pot_, kin_ = planet.compute_energies()
-                pot.append(pot_)
-                kin.append(kin_)
-            print("potential:", pot, " => ", sum(pot))
-            print("kinetic  :", kin, " => ", sum(kin))
-            print("Total    :", sum(
-                [pot_*kin_ for pot_, kin_ in zip(pot, kin)]))
-            print("")
+                planet.next()
 
-        # normal run
-        for planet in planets:
-            for other in planets:
-                if planet == other:
-                    continue
-                planet.interact(other)
-
-        # go to next step
-        for planet in planets:
-            planet.next()
-
-        # input("pause...")
-        # for planet in planets:
-        #     print(planet)
-
-    fig = plt.figure()
-    ax = plt.axes(projection='3d')
-    for planet in planets[1:]:
-        ax.plot3D(planet.positions["x"],
-                  planet.positions["y"],
-                  planet.positions["z"])
-
-    plt.show()
+            # save
+            x_state = tuple([(planet.position[0], planet.velocity[0])
+                             for planet in planets])
+            y_state = tuple([(planet.position[1], planet.velocity[1])
+                             for planet in planets])
+            z_state = tuple([(planet.position[2], planet.velocity[2])
+                             for planet in planets])
+            if all([state in states for state, states in zip([x_state, y_state, z_state],
+                                                             [x_states, y_states, z_states])]):
+                break
+            x_states.add(x_state)
+            y_states.add(y_state)
+            z_states.add(z_state)
+        print("sizes: ", len(x_states), len(y_states), len(z_states))
+        # find the lcm of each length of circle
+        print(lcm(lcm(len(x_states), len(y_states)), len(z_states)))
+    except KeyboardInterrupt:
+        pass
 
 
 if __name__ == "__main__":
