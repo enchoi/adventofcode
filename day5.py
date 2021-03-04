@@ -86,6 +86,8 @@ class Opcodes():
     def stop(self):
         """ stop processing """
         self.is_running = False
+        if self._com_pipe is not None:
+            self._com_pipe.close()
 
     def add_methods(self, instr, method, params_nb, ret):
         """ add a method """

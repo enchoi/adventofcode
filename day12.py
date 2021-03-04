@@ -108,7 +108,6 @@ def get_inputs():
             x_states.add(x_state)
             y_states.add(y_state)
             z_states.add(z_state)
-        print("sizes: ", len(x_states), len(y_states), len(z_states))
         # find the lcm of each length of circle
         print(lcm(lcm(len(x_states), len(y_states)), len(z_states)))
     except KeyboardInterrupt:
