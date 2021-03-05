@@ -32,15 +32,10 @@ def find(x, y):
 def controller(pipe, go):
     while True:
         if keyboard.is_pressed("left"):
-            # while keyboard.is_pressed("left"):
-            #     pass
-
             pipe.send(-1)
-        if keyboard.is_pressed("right"):
-            # while keyboard.is_pressed("right"):
-            #     pass
+        elif keyboard.is_pressed("right"):
             pipe.send(1)
-        if keyboard.is_pressed("espace"):
+        elif keyboard.is_pressed("espace"):
             go.append(True)
             pipe.send(0)
             return
@@ -72,11 +67,6 @@ def print_(tiles):
             time.sleep(0.008)
         except:
             pass
-
-    # string += str(find(-1, 0))
-
-    # with open("day13.ouput", "w") as fichier:
-    #     fichier.write(string)
 
 
 with open("day13.input", "r") as fichier:
@@ -110,6 +100,7 @@ instructions = []
 score = []
 try:
     while True:
+        # If pipe is close(), recv will raise EOFError
         # get from left
         x = pipe.recv()
         # get from top
@@ -118,15 +109,8 @@ try:
         mat = pipe.recv()
 
         # save the tile
-        # if x == -1 and not y:
-        #     print("Score : ", mat)
-        # else:
         tiles[(x, y)] = mat
 
-        instructions.append((x, y, mat))
-        if x == -1:
-            score.append(mat)
-        # print_(tiles)
         if go and mat in [4]:
             try:
                 me = [key for key, value in tiles.items() if value == 3][0]
@@ -145,9 +129,7 @@ try:
 except (EOFError, KeyboardInterrupt) as exp:
     print(exp)
 
-# clear()
-print(instructions[-10:])
-print(score[-10:])
+
 # How many block tiles are on the screen when the game exits?
 print("Block: ", len([pos for pos, tile in tiles.items() if tile == 2]))
 print("Score: ", tiles.get((-1, 0), 0))
